@@ -1,42 +1,98 @@
 import { Injectable } from '@angular/core';
+
 import { HttpClient } from '@angular/common/http';
+
 import { Observable } from 'rxjs';
+
 import { Category } from '../models/category.model';
 
-const baseUrl = 'http://localhost:8080/api/categories';
+import { AngularFirestore, AngularFirestoreCollection, AngularFirestoreDocument } from '@angular/fire/compat/firestore';
+
+ 
+
+//const baseUrl = 'http://localhost:8080/api/categories';
+
+ 
 
 @Injectable({
+
   providedIn: 'root'
+
 })
+
 export class CategoryService {
-  constructor(private http: HttpClient) { }
 
-  getAll(): Observable<Category[]> {
-    return this.http.get<Category[]>(baseUrl);
+  private dbPath = '/categories'
+
+ 
+
+  categoriesRef: AngularFirestoreCollection<Category>;
+
+ 
+
+  constructor(private db: AngularFirestore) {
+
+    this.categoriesRef = db.collection(this.dbPath);
+
   }
 
-  get(id: any): Observable<Category> {
-    return this.http.get(`${baseUrl}/${id}`);
+ 
+
+ 
+
+  getAll(): AngularFirestoreCollection<Category> {
+
+    return this.categoriesRef;
+
+ 
+
   }
 
-  create(data: any): Observable<any> {
-    return this.http.post(baseUrl, data);
+ 
+
+  get(id: any): AngularFirestoreDocument<Category> {
+
+    return this.categoriesRef.doc(id);
+
   }
 
-  update(id: any, data: any): Observable<any> {
-    return this.http.put(`${baseUrl}/${id}`, data);
+ 
+
+  create(category: Category): any {
+
+    return this.categoriesRef.add({ ...category });
+
   }
 
-  delete(id: any): Observable<any> {
-    return this.http.delete(`${baseUrl}/${id}`);
+ 
+
+  update(id: any, data: any): Promise<void> {
+
+    return this.categoriesRef.doc(id).update(data);
+
   }
 
-  deleteAll(): Observable<any> {
-    return this.http.delete(baseUrl);
+ 
+
+  delete(id: string): Promise<void> {
+
+    return this.categoriesRef.doc(id).delete();
+
   }
 
-  findByName(name: any): Observable<Category[]> {
-    return this.http.get<Category[]>(`${baseUrl}?name=${name}`);
-  }
+ 
 
+  //deleteAll(): Observable<any> {
+
+  //return this.categoriesRef.delete();
+
+  //}
+
+ 
+
+  findByName(name: string): AngularFirestoreCollection<Category> {
+
+    return this.categoriesRef;
+
+  }
 }
