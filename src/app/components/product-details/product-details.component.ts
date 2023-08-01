@@ -1,4 +1,8 @@
-import { Component, OnInit, Input, OnChanges, Output, EventEmitter } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
+
+import { ActivatedRoute, Router } from '@angular/router';
+
+import { StorageService } from 'src/app/_services/storage.service';
 
 import { Product } from 'src/app/models/product.model';
 
@@ -18,41 +22,107 @@ import { ProductService } from 'src/app/services/product.service';
 
 export class ProductDetailsComponent implements OnInit {
 
-  @Input() product?: Product;
+  @Input() viewMode = false;
 
-  @Output() refreshList: EventEmitter<any> = new EventEmitter();
+ 
 
-  currentProduct: Product = {
+  @Input() currentProduct: Product = {
 
     name: '',
 
     description: '',
 
-    published: false
+    price: 0,
+
+    published: false,
+
+    category: ''
 
   };
+
+ 
 
   message = '';
 
  
 
-  constructor(private productService: ProductService) { }
+  private roles: string[] = [];
+
+  isLoggedIn = false;
+
+  showAdminBoard = false;
+
+  showModeratorBoard = false;
+
+  username?: string;
+
+ 
+
+  constructor(
+
+    private productService: ProductService,
+
+    private route: ActivatedRoute,
+
+    private router: Router, private storageService: StorageService,) { }
 
  
 
   ngOnInit(): void {
 
-    this.message = '';
+    if (!this.viewMode) {
+
+      this.message = '';
+
+      this.getProduct(this.route.snapshot.params["id"]);
+
+    }
+
+    this.isLoggedIn = this.storageService.isLoggedIn();
+
+ 
+
+    if (this.isLoggedIn) {
+
+      const user = this.storageService.getUser();
+
+      this.roles = user.roles;
+
+ 
+
+      this.showAdminBoard = this.roles.includes('ROLE_ADMIN');
+
+      this.showModeratorBoard = this.roles.includes('ROLE_MODERATOR');
+
+ 
+
+      //this.username = user.username;
+
+    }
 
   }
 
  
 
-  ngOnChanges(): void {
+ 
 
-    this.message = '';
+  getProduct(id: string): void {
 
-    this.currentProduct = { ...this.product };
+    this.productService.get(id)
+
+      .subscribe({
+
+        next: (data) => {
+
+          this.currentProduct = data;
+
+          console.log(data);
+
+        },
+
+        error: (e) => console.error(e)
+
+      });
 
   }
 
@@ -60,21 +130,43 @@ export class ProductDetailsComponent implements OnInit {
 
   updatePublished(status: boolean): void {
 
-    if (this.currentProduct.id) {
+    const data = {
 
-      this.productService.update(this.currentProduct.id, { published: status })
+      name: this.currentProduct.name,
 
-        .then(() => {
+      description: this.currentProduct.description,
+
+      category: this.currentProduct.category,
+
+      price: this.currentProduct.price,
+
+      published: status
+
+    };
+
+ 
+
+    this.message = '';
+
+ 
+
+    this.productService.update(this.currentProduct.id, data)
+
+      .subscribe({
+
+        next: (res) => {
+
+          console.log(res);
 
           this.currentProduct.published = status;
 
-          this.message = 'The status was updated successfully!';
+          this.message = res.message ? res.message : 'The status was updated successfully!';
 
-        })
+        },
 
-        .catch(err => console.log(err));
+        error: (e) => console.error(e)
 
-    }
+      });
 
   }
 
@@ -82,25 +174,25 @@ export class ProductDetailsComponent implements OnInit {
 
   updateProduct(): void {
 
-    const data = {
-
-      name: this.currentProduct.name,
-
-      description: this.currentProduct.description
-
-    };
+    this.message = '';
 
  
 
-    if (this.currentProduct.id) {
+    this.productService.update(this.currentProduct.id, this.currentProduct)
 
-      this.productService.update(this.currentProduct.id, data)
+      .subscribe({
 
-        .then(() => this.message = 'The product was updated successfully!')
+        next: (res) => {
 
-        .catch(err => console.log(err));
+          console.log(res);
 
-    }
+          this.message = res.message ? res.message : 'This product was updated successfully!';
+
+        },
+
+        error: (e) => console.error(e)
+
+      });
 
   }
 
@@ -108,24 +200,28 @@ export class ProductDetailsComponent implements OnInit {
 
   deleteProduct(): void {
 
-    if (this.currentProduct.id) {
+    this.productService.delete(this.currentProduct.id)
 
-      this.productService.delete(this.currentProduct.id)
+      .subscribe({
 
-        .then(() => {
+        next: (res) => {
 
-          this.refreshList.emit();
+          console.log(res);
 
-          this.message = 'The product was updated successfully!';
+          this.router.navigate(['/products']);
 
-        })
+        },
 
-        .catch(err => console.log(err));
+        error: (e) => console.error(e)
 
-    }
+      });
 
   }
 
+ 
+
 }
+
+ 
 
  
